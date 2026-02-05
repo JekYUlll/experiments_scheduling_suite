@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+
+# Outputs
+reports/
+data/processed/
+
+# Generated data (synthetic)
+data/generated/
+
+# Models / arrays
+*.pt
+*.npz
+*.joblib
