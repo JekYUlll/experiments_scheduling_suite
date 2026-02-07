@@ -171,17 +171,19 @@ def plot_feature_kde_comparison(
 ) -> None:
     """原始/遮罩/插补的 KDE 分布对比。"""
     apply_style()
+    # 仅使用三份数据都包含的列，避免 mask-aware 特征导致 KeyError
+    common_cols = [c for c in cols if c in original.columns and c in masked.columns and c in imputed.columns]
     observed_ratio = {}
-    for col in cols:
+    for col in common_cols:
         series = pd.to_numeric(masked[col], errors="coerce")
         observed_ratio[col] = float(series.notna().mean())
-    candidates = [c for c in cols if observed_ratio.get(c, 0.0) >= min_observed_ratio]
+    candidates = [c for c in common_cols if observed_ratio.get(c, 0.0) >= min_observed_ratio]
     if candidates:
         candidates = sorted(candidates, key=lambda c: observed_ratio.get(c, 0.0), reverse=True)
         use_cols = candidates[:max_cols]
     else:
         # 如果全部是全缺失，退而选观测比例最高的列并标注
-        use_cols = sorted(cols, key=lambda c: observed_ratio.get(c, 0.0), reverse=True)[:max_cols]
+        use_cols = sorted(common_cols, key=lambda c: observed_ratio.get(c, 0.0), reverse=True)[:max_cols]
     if not use_cols:
         return
     n = len(use_cols)

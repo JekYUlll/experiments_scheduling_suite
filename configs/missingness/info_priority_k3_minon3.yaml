@@ -2,6 +2,7 @@ missingness:
   name: info_priority
   budget_k: 3
   min_on_steps: 3
+  min_coverage_ratio: 0.3333333333
   weight_method: train_corr
   lag_steps: [0, 1, 2, 4]
   refresh_steps: null

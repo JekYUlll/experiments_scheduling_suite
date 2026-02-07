@@ -49,22 +49,48 @@ def generate(
     min_on_steps = int(cfg.get("min_on_steps", 1))
     lag_steps = [int(x) for x in cfg.get("lag_steps", [0, 1, 2, 4])]
     refresh_steps = cfg.get("refresh_steps")
+    min_cov = float(cfg.get("min_coverage_ratio", 0.0))
 
     candidates = [c for c in mask.columns if c != target_col]
+    if candidates and min_cov > 0:
+        max_possible = min(1.0, budget_k / len(candidates))
+        min_cov = min(min_cov, max_possible)
     base_df = df.iloc[train_slice] if train_slice is not None else df
     base_weights = _compute_weights(base_df, target_col, candidates, lag_steps)
 
     n = len(df)
     block_len = max(1, min_on_steps)
+    obs_counts = {c: 0 for c in candidates}
     for start in range(0, n, block_len):
         end = min(n, start + block_len)
         weights = base_weights
         if refresh_steps and start > 0 and start % int(refresh_steps) == 0:
             weights = _compute_weights(df.iloc[:start], target_col, candidates, lag_steps)
         sorted_cols = sorted(weights.items(), key=lambda kv: kv[1], reverse=True)
-        selected = [c for c, _ in sorted_cols[: min(budget_k, len(sorted_cols))]]
+        selected: List[str] = []
+        if min_cov > 0 and candidates:
+            # 覆盖率约束：优先补齐当前覆盖不足的变量
+            time_after = end
+            gaps = []
+            for col in candidates:
+                desired = min_cov * time_after
+                gap = desired - obs_counts[col]
+                if gap > 0:
+                    gaps.append((gap, col))
+            gaps.sort(reverse=True)
+            for _, col in gaps:
+                if len(selected) >= budget_k:
+                    break
+                selected.append(col)
+        for col, _ in sorted_cols:
+            if len(selected) >= budget_k:
+                break
+            if col not in selected:
+                selected.append(col)
         mask.iloc[start:end, :] = 0
         mask.loc[start:end, selected] = 1
+        for col in selected:
+            obs_counts[col] += (end - start)
 
     mask = enforce_target_observed(mask, target_col, bool(cfg.get("target_always_observed", True)))
     return mask

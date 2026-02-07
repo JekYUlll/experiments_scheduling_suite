@@ -56,6 +56,12 @@ def build_run_id(dataset_cfg: Dict[str, Any], base_cfg: Dict[str, Any], missing_
     extra = ""
     if missing_name == "round_robin":
         extra = f"_k{missing_cfg.get('budget_k', '')}_minon{missing_cfg.get('min_on_steps', '')}"
+    if missing_name == "info_priority":
+        cov = missing_cfg.get("min_coverage_ratio")
+        cov_str = ""
+        if cov is not None:
+            cov_str = f"_cov{str(cov).replace('.', 'p')}"
+        extra = f"_k{missing_cfg.get('budget_k', '')}_minon{missing_cfg.get('min_on_steps', '')}{cov_str}"
     if missing_name == "duty_cycle":
         extra = f"_p{missing_cfg.get('period_steps', '')}_on{missing_cfg.get('on_steps', '')}"
     if missing_name == "block":
